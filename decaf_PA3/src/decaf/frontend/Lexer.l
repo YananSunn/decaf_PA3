@@ -37,7 +37,7 @@ HEX_INTEGER			= (0[Xx]{HEX_DIGIT}+)
 DEC_INTEGER			= ({DIGIT}+)
 INTEGER				= ({HEX_INTEGER}|{DEC_INTEGER})
 IDENTIFIER			= ([A-Za-z][_0-9A-Za-z]*)
-SIMPLE_OPERATOR		= ("+"|"-"|"*"|"/"|"%"|"="|"<"|">"|"."|","|";"|"!"|"("|")"|"["|"]"|"{"|"}")
+SIMPLE_OPERATOR		= ("+"|"-"|"*"|"/"|"%"|"="|"<"|">"|"."|","|";"|"!"|"("|")"|"["|"]"|"{"|"}"|":")
 S_COMMENT			= ("//"[^\r\n]*{NEWLINE})
 WHITESPACE			= ([ \t]+)
 
@@ -61,6 +61,14 @@ WHITESPACE			= ([ \t]+)
 "class"				{ return keyword(Parser.CLASS);			}
 "extends"			{ return keyword(Parser.EXTENDS);		}
 "this"				{ return keyword(Parser.THIS);			}
+
+"scopy"				{ return keyword(Parser.SCOPY);			}
+"sealed"			{ return keyword(Parser.SEALED);		}
+"var"				{ return keyword(Parser.VAR);			}
+"default"			{ return keyword(Parser.DEFAULT);		}
+"in"				{ return keyword(Parser.IN);			}
+"foreach"			{ return keyword(Parser.FOREACH);		}
+
 "while"				{ return keyword(Parser.WHILE);			}
 "for"				{ return keyword(Parser.FOR);			}
 "if"				{ return keyword(Parser.IF);			}
@@ -80,6 +88,12 @@ WHITESPACE			= ([ \t]+)
 "!="				{ return operator(Parser.NOT_EQUAL);	}
 "&&"				{ return operator(Parser.AND);			}
 "||"				{ return operator(Parser.OR);			}
+"[|"				{ return operator(Parser.FORLEFT);		}
+"|]"				{ return operator(Parser.FORRIGHT);		}
+"|||"				{ return operator(Parser.GUARDED);		}
+"%%"				{ return operator(Parser.NEWSAMEARRAY);	}
+"++"				{ return operator(Parser.JOINTARRAY);	}
+
 {SIMPLE_OPERATOR}	{ return operator((int)yycharat(0));	}
 
 	// 识别常数的规则

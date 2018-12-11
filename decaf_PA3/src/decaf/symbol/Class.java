@@ -30,6 +30,8 @@ public class Class extends Symbol {
 	private VTable vtable;
 
 	private Label newFuncLabel;
+	
+	private boolean sealed;
 
 	public Label getNewFuncLabel() {
 		return newFuncLabel;
@@ -77,6 +79,7 @@ public class Class extends Symbol {
 		this.location = location;
 		this.order = -1;
 		this.check = false;
+		this.sealed = false;
 		this.numNonStaticFunc = -1;
 		this.numVar = -1;
 		this.associatedScope = new ClassScope(this);
@@ -149,6 +152,14 @@ public class Class extends Symbol {
 		this.check = check;
 	}
 
+	public boolean isSealed() {
+		return sealed;
+	}
+
+	public void setSealed(boolean sealed) {
+		this.sealed = sealed;
+	}
+	
 	public void resolveFieldOrder() {
 		if (numNonStaticFunc >= 0 && numVar >= 0) {
 			return;

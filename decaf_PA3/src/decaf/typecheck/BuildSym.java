@@ -3,14 +3,23 @@ package decaf.typecheck;
 import java.util.Iterator;
 
 import decaf.Driver;
+import decaf.Location;
 import decaf.tree.Tree;
+import decaf.tree.Tree.Block;
+import decaf.tree.Tree.ForeachArray;
+import decaf.tree.Tree.Sealed;
+import decaf.tree.Tree.Var;
 import decaf.error.BadArrElementError;
+import decaf.error.BadArrOperArgError;
 import decaf.error.BadInheritanceError;
 import decaf.error.BadOverrideError;
+import decaf.error.BadSealedInherError;
+import decaf.error.BadTestExpr;
 import decaf.error.BadVarTypeError;
 import decaf.error.ClassNotFoundError;
 import decaf.error.DecafError;
 import decaf.error.DeclConflictError;
+import decaf.error.IncompatBinOpError;
 import decaf.error.NoMainClassError;
 import decaf.error.OverridingVarError;
 import decaf.scope.ClassScope;
@@ -47,6 +56,10 @@ public class BuildSym extends Tree.Visitor {
 		table.open(program.globalScope);
 		for (Tree.ClassDef cd : program.classes) {
 			Class c = new Class(cd.name, cd.parent, cd.getLocation());
+			boolean isSealed = cd instanceof Sealed;
+			if(isSealed) {
+				c.setSealed(true);
+			}
 			Class earlier = table.lookupClass(cd.name);
 			if (earlier != null) {
 				issueError(new DeclConflictError(cd.getLocation(), cd.name,
@@ -66,6 +79,12 @@ public class BuildSym extends Tree.Visitor {
 			if (calcOrder(c) <= calcOrder(c.getParent())) {
 				issueError(new BadInheritanceError(cd.getLocation()));
 				c.dettachParent();
+			}
+			if(cd.parent != null && c.getParent() != null) {
+				if(c.getParent().isSealed() == true)
+				{
+					issueError(new BadSealedInherError(cd.getLocation()));
+				}
 			}
 		}
 
@@ -101,7 +120,38 @@ public class BuildSym extends Tree.Visitor {
 		}
 		table.close();
 	}
+	
+	public void visitForeachArray(ForeachArray foreachArray){
+		
+		if(foreachArray.stmt instanceof Block) {
+			foreachArray.associatedScope = new LocalScope((Block)(foreachArray.stmt));
+		}
+		else {
+			foreachArray.associatedScope = new LocalScope(new Block(null, new Location(0,0)));
+		}
+		table.open(foreachArray.associatedScope);	
+		Symbol sym = new Variable(foreachArray.varbind.name, foreachArray.varbind.type, foreachArray.varbind.getLocation());
+		foreachArray.associatedScope.declare(sym);
+		foreachArray.varbind.accept(this);
+		foreachArray.expr1.accept(this);
+		foreachArray.expr2.accept(this);
+	
+		for (Tree s : ((Block)(foreachArray.stmt)).block) {
+			s.accept(this);
+		}
+		
+		table.close();
+	}
 
+//	public void visitSealed(Tree.Sealed sealed) {
+//		table.open(sealed.symbol.getAssociatedScope());
+//		for (Tree f : sealed.fields) {
+//			f.accept(this);
+//		}
+//		table.close();
+//	}
+	
+	
 	@Override
 	public void visitVarDef(Tree.VarDef varDef) {
 		varDef.type.accept(this);
@@ -209,6 +259,21 @@ public class BuildSym extends Tree.Visitor {
 		table.close();
 	}
 
+	
+	public void visitAssign(Tree.Assign assign) {
+		
+//		assign.expr.accept(this);
+		boolean isVar = assign.left instanceof Var;
+		if(isVar) {
+			assign.left.accept(this);
+		}
+	}
+	
+	public void visitVar(Tree.Var var)
+    {
+		var.vardef.accept(this);
+    }
+	
 	@Override
 	public void visitForLoop(Tree.ForLoop forLoop) {
 		if (forLoop.loopBody != null) {
