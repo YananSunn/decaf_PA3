@@ -3,12 +3,15 @@ package decaf.translate;
 import java.util.Stack;
 
 import decaf.tree.Tree;
+import decaf.Driver;
 import decaf.backend.OffsetCounter;
+import decaf.error.DecafError;
 import decaf.machdesc.Intrinsic;
 import decaf.symbol.Variable;
 import decaf.tac.Label;
 import decaf.tac.Temp;
 import decaf.type.BaseType;
+import decaf.type.ClassType;
 
 public class TransPass2 extends Tree.Visitor {
 
@@ -73,9 +76,11 @@ public class TransPass2 extends Tree.Visitor {
 			expr.val = tr.genMul(expr.left.val, expr.right.val);
 			break;
 		case Tree.DIV:
+			checkZero(expr.right.val);
 			expr.val = tr.genDiv(expr.left.val, expr.right.val);
 			break;
 		case Tree.MOD:
+			checkZero(expr.right.val);
 			expr.val = tr.genMod(expr.left.val, expr.right.val);
 			break;
 		case Tree.AND:
@@ -385,5 +390,72 @@ public class TransPass2 extends Tree.Visitor {
 			tr.genClassCast(typeCast.expr.val, typeCast.symbol);
 		}
 		typeCast.val = typeCast.expr.val;
+	}
+	
+	public void visitSCopyExpr(Tree.SCopyExpr scopy) {
+		scopy.expr.accept(this);
+        int n = ((ClassType) scopy.expr.type).getSymbol().getSize();
+        Temp size = tr.genLoadImm4(n);
+        tr.genParm(size);
+        Temp result = tr.genIntrinsicCall(Intrinsic.ALLOCATE);
+        int time = n / 4 - 1;
+        for (int i = 0; i < time; i++)
+        {
+            Temp tmp = tr.genLoad(scopy.expr.val, (i + 1) * 4);
+            tr.genStore(tmp, result, (i + 1) * 4);
+        }
+        tr.genStore(tr.genLoadVTable(((ClassType) scopy.expr.type).getSymbol().getVtable()), result, 0);
+        scopy.sym.setTemp(result);
+	}
+	
+	public void visitGuarded(Tree.Guarded guarded) {
+		Label start = Label.createLabel();
+        Label[] labels = new Label[guarded.subStmt.size() + 1];
+        for (int i = 0; i <= guarded.subStmt.size(); i++)
+        {
+            labels[i] = Label.createLabel();
+        }
+        Label last = labels[guarded.subStmt.size()];
+        Label end = Label.createLabel();
+         loopExits.push(end);
+         tr.genMark(start);
+        int k = 0;
+        for (Tree stmt : guarded.subStmt)
+        {
+        	
+            tr.genMark(labels[k]);
+            ((Tree.IfSubStmt)stmt).expr.accept(this);
+            tr.genBeqz(((Tree.IfSubStmt) stmt).expr.val, labels[k + 1]);
+            stmt.accept(this);
+            tr.genBranch(start);
+            k++;
+        }
+        tr.genMark(last);
+        ((Tree.IfSubStmt)guarded.last).expr.accept(this);
+        tr.genBeqz(((Tree.IfSubStmt)guarded.last).expr.val, end);
+        guarded.last.accept(this);
+        tr.genBranch(start);
+        tr.genMark(end);
+	}
+	
+	public void visitIfSubStmt(Tree.IfSubStmt ifSubStmt)
+    {
+        ifSubStmt.stmt.accept(this);
+    }
+	
+	
+	 private void checkZero(Temp src){
+        Temp msg = tr.genLoadStrConst("Decaf runtime error: Division by zero error.");
+        Label goon = Label.createLabel();
+        Temp cond = tr.genEqu(src, tr.genLoadImm4(0));
+        tr.genBeqz(cond, goon);
+        tr.genParm(msg);
+        tr.genIntrinsicCall(Intrinsic.PRINT_STRING);
+        tr.genIntrinsicCall(Intrinsic.HALT);
+        tr.genMark(goon);
+	}
+	 
+	private void issueError(DecafError error) {
+		Driver.getDriver().issueError(error);
 	}
 }

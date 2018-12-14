@@ -623,6 +623,7 @@ public class TypeCheck extends Tree.Visitor {
             }
         }
         else {
+        	sCopyExpr.sym = (Variable)identSymbol;
         	Type identType = table.lookup(sCopyExpr.ident, true).getType();
         	if(!identType.equal(BaseType.ERROR) && !identType.isClassType()) {
         		issueError(new BadScopyArgError(sCopyExpr.getLocation(), "dst", identType.toString()));
@@ -665,10 +666,10 @@ public class TypeCheck extends Tree.Visitor {
             ifSubStmt.type = BaseType.ERROR;
         }
 
-//	        if (ifSubStmt.stmt != null)
-//	        {
-//	        	ifSubStmt.stmt.accept(this);
-//	        }
+        if (ifSubStmt.stmt != null)
+        {
+        	ifSubStmt.stmt.accept(this);
+        }
 
     }
 

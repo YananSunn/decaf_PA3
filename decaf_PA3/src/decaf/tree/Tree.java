@@ -1411,10 +1411,11 @@ public abstract class Tree {
     }
 
 
-    public static class SCopyExpr extends Tree {
+    public static class SCopyExpr extends Expr {
 
     	public String ident;
     	public Expr expr;
+    	public Variable sym;
 
     	public SCopyExpr(String ident, Expr expr, Location loc) {
     		super(SCOPYEXPR, loc);
