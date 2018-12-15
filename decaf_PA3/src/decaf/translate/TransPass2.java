@@ -537,55 +537,38 @@ public class TransPass2 extends Tree.Visitor {
 		if(foreachArray.expr2 != null) {
 			foreachArray.expr2.accept(this);
 		}
-		
-		
 		Label cond = Label.createLabel();
 		Label loop = Label.createLabel();
 		Label exit = Label.createLabel();
-		
-		Label tmplabel1 = Label.createLabel();
-		Label tmplabel2 = Label.createLabel();
-		Label tmplabel3 = Label.createLabel();
-		Label tmplabel4 = Label.createLabel();
-		
 
 		Temp zero = tr.genLoadImm4(0);
 		Temp one = tr.genLoadImm4(1);
 		Temp four = tr.genLoadImm4(4);
 		Temp element = tr.genAdd(foreachArray.expr1.val, zero);
 		Temp length = tr.genLoad(foreachArray.expr1.val, -OffsetCounter.WORD_SIZE);
-
 		Temp index = tr.genLoadImm4(0);
 		Temp indextarget = tr.genLoadImm4(0);
 		tr.genBranch(cond);
-		
 		tr.genMark(loop);
-		tr.genMark(tmplabel1);
-		foreachArray.varbind.sym.setTemp(tr.genLoad(element, 0));
-		indextarget = tr.genAdd(element, four);
-		tr.genAssign(element, indextarget);
-		foreachArray.stmt.accept(this);
-		
 		tr.genMark(cond);
-		tr.genMark(tmplabel2);
-		tr.genMark(tmplabel3);
 		Temp condtion = tr.genLes(index, length);
 		Temp centtmp = tr.genAdd(index, one);
-		tr.genAssign(index, centtmp);
+		tr.genAssign(index, centtmp);	
 		
-		
+		tr.genBeqz(condtion, exit);
+		tr.genAssign(foreachArray.varbind.sym.getTemp(), tr.genLoad(element, 0));
 		if(foreachArray.expr2 != null) {
 			tr.genBeqz(foreachArray.expr2.val, exit);
 		}
-		tr.genBeqz(condtion, exit);
+
+		indextarget = tr.genAdd(element, four);
+		tr.genAssign(element, indextarget);
+		
 		loopExits.push(exit);
-		
+		foreachArray.stmt.accept(this);
 		tr.genBranch(loop);
-		loopExits.pop();
-		
-		tr.genMark(exit);
-		tr.genMark(tmplabel4);
-		
+		loopExits.pop();		
+		tr.genMark(exit);	
 	}
 	
 	private void checkZero(Temp src){
