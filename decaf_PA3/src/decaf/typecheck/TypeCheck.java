@@ -774,6 +774,12 @@ public class TypeCheck extends Tree.Visitor {
 				}
 				else {
 					if(((ArrayType)foreachArray.expr1.type).getElementType().compatible(foreachArray.varbind.type)) {
+						for (Tree s : ((Block)(foreachArray.stmt)).block) {
+							breaks.add(s);
+							s.accept(this);
+							breaks.pop();
+						}
+						table.close();
 					}
 					else {
 						issueError(new BadForeachTypeError(foreachArray.getLocation(), foreachArray.varbind.type.toString(), foreachArray.expr1.type.toString()));	

@@ -9,6 +9,7 @@ import decaf.tree.Tree.Block;
 import decaf.tree.Tree.ForeachArray;
 import decaf.tree.Tree.Sealed;
 import decaf.tree.Tree.Var;
+import decaf.tree.Tree.VarBind;
 import decaf.error.BadArrElementError;
 import decaf.error.BadArrOperArgError;
 import decaf.error.BadInheritanceError;
@@ -146,6 +147,9 @@ public class BuildSym extends Tree.Visitor {
 		table.close();
 	}
 
+	public void visitVarbind(VarBind varbind) {
+		
+	}
 //	public void visitSealed(Tree.Sealed sealed) {
 //		table.open(sealed.symbol.getAssociatedScope());
 //		for (Tree f : sealed.fields) {
