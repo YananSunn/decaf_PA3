@@ -449,29 +449,30 @@ public class Translater {
 		return obj;
 	}
 	
-	public Temp genCheckDefaultArrayIndex(Temp array, Temp index, Temp defaultexpr) {
+//	public Temp genCheckDefaultArrayIndex(Temp array, Temp index, Temp defaultexpr) {
 //		Temp length = genLoad(array, -OffsetCounter.WORD_SIZE);
-		Temp length = genLoad(array, 0);
-		Temp cond = genLes(index, length);
-		Temp result = genIntrinsicCall(Intrinsic.ALLOCATE);
-		Label err = Label.createLabel();
-		genBeqz(cond, err);
-		cond = genLes(index, genLoadImm4(0));
-		Label exit = Label.createLabel();
-		Label end = Label.createLabel();
-		genBeqz(cond, exit);
-
-
-		genMark(err);
-		genStore(defaultexpr, result, 0);
-		genBranch(end);
-		
-		genMark(exit);
-		Temp tmp = genLoad(array, (index.value) *4);
-		genStore(tmp, result, 0);
-		genMark(end);
-		return result;
-	}
+//		Temp cond = genLes(index, length);
+//		Temp result = genIntrinsicCall(Intrinsic.ALLOCATE);
+//		Label err = Label.createLabel();
+//		genBeqz(cond, err);
+//		cond = genLes(index, genLoadImm4(0));
+//		Label exit = Label.createLabel();
+//		Label end = Label.createLabel();
+//		genBeqz(cond, exit);
+//
+//		genMark(err);
+//		genStore(defaultexpr, result, 0);
+//		genBranch(end);
+//		
+//		genMark(exit);
+//		Temp esz = genLoadImm4(OffsetCounter.WORD_SIZE);
+//		Temp t = genMul(index, esz);
+//		Temp base = genAdd(array, t);		
+//		Temp tmp = genLoad(base, 0);
+//		genStore(tmp, result, 0);
+//		genMark(end);
+//		return result;
+//	}
 	
 
 	public void genNewForClass(Class c) {

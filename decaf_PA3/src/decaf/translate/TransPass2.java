@@ -5,6 +5,7 @@ import java.util.Stack;
 import decaf.tree.Tree;
 import decaf.tree.Tree.DefaultArray;
 import decaf.tree.Tree.ForeachArray;
+import decaf.tree.Tree.VarBind;
 import decaf.Driver;
 import decaf.backend.OffsetCounter;
 import decaf.error.DecafError;
@@ -481,6 +482,8 @@ public class TransPass2 extends Tree.Visitor {
 		else {
 			result = tr.genNewSameArray(newSameArray.expr.val, newSameArray.newsamearray.val, n, newSameArray, false);
 		}
+//		Temp tmp = tr.genLoadImm4(4);
+//		result = tr.genAdd(result, tmp);
 		newSameArray.val = result;
 	}
 	
@@ -488,11 +491,84 @@ public class TransPass2 extends Tree.Visitor {
 		defaultArray.expr2.accept(this);
 		defaultArray.expr1.accept(this);
 		defaultArray.expr3.accept(this);
-		Temp result = tr.genCheckDefaultArrayIndex(defaultArray.expr1.val, defaultArray.expr2.val, defaultArray.expr3.val);
+		
+		
+		Temp length = tr.genLoad(defaultArray.expr1.val, -OffsetCounter.WORD_SIZE);
+//		Temp length = tr.genLoad(defaultArray.expr1.val, 0);
+//		Temp length = tr.genLoadImm4(2);
+		Temp cond = tr.genLes(defaultArray.expr2.val, length);
+		Temp result = Temp.createTempI4();
+//		Temp result = tr.genIntrinsicCall(Intrinsic.ALLOCATE);
+		Label err = Label.createLabel();
+		tr.genBeqz(cond, err);
+		cond = tr.genLes(defaultArray.expr2.val, tr.genLoadImm4(0));
+		Label exit = Label.createLabel();
+		Label end = Label.createLabel();
+		tr.genBeqz(cond, exit);
+
+		tr.genMark(err);
+//		tr.genStore(defaultArray.expr3.val, result, 0);
+		tr.genAssign(result, defaultArray.expr3.val);
+		tr.genBranch(end);
+		
+		tr.genMark(exit);
+		Temp esz = tr.genLoadImm4(OffsetCounter.WORD_SIZE);
+		Temp t = tr.genMul(defaultArray.expr2.val, esz);
+		Temp base = tr.genAdd(defaultArray.expr1.val, t);		
+		Temp tmp = tr.genLoad(base, 0);
+//		tr.genStore(tmp, result, 0);
+		tr.genAssign(result, tmp);
+		tr.genMark(end);
+		
+		
+//		Temp result = tr.genCheckDefaultArrayIndex(defaultArray.expr1.val, defaultArray.expr2.val, defaultArray.expr3.val);
 		defaultArray.val = result;
 	}
 	
-
+	public void visitVarBind(VarBind varbind) {
+		Temp t = Temp.createTempI4();
+		t.sym = varbind.sym;
+		varbind.sym.setTemp(t);
+	}
+	
+	public void visitForeachArray(ForeachArray foreachArray) {
+		foreachArray.expr1.accept(this);
+		if(foreachArray.expr2 != null) {
+			foreachArray.expr2.accept(this);
+		}
+		foreachArray.varbind.accept(this);
+		
+		
+		Label cond = Label.createLabel();
+		Label loop = Label.createLabel();
+		Label exit = Label.createLabel();
+		
+		Temp init = tr.genLoadImm4(0);
+		Temp first = tr.genAdd(foreachArray.expr1.val, init);
+		Temp length = tr.genLoad(foreachArray.expr1.val, -OffsetCounter.WORD_SIZE);
+		Temp tmp = tr.genLoadImm4(1);
+		Temp tmp2 = tr.genLoadImm4(4);
+		
+		tr.genBranch(cond);
+		
+		tr.genMark(loop);
+		tr.genAdd(first, tmp2);
+		init = tr.genAdd(init, tmp);
+		
+		tr.genMark(cond);
+		Temp condtion = tr.genLes(init, length);
+		tr.genStore(first, foreachArray.varbind.sym.getTemp(), 0);
+		if(foreachArray.expr2 != null) {
+			tr.genBeqz(foreachArray.expr2.val, exit);
+		}
+		tr.genBeqz(condtion, exit);
+		loopExits.push(exit);
+		foreachArray.stmt.accept(this);
+		tr.genBranch(loop);
+		loopExits.pop();
+		tr.genMark(exit);
+		
+	}
 	
 	private void checkZero(Temp src){
         Temp msg = tr.genLoadStrConst("Decaf runtime error: Division by zero error.");

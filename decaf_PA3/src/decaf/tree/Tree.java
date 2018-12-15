@@ -1385,6 +1385,8 @@ public abstract class Tree {
     	
     	public TypeLiteral typeee;
     	public String name;
+    	public Variable sym;
+    	
     	
     	public VarBind(TypeLiteral typeee, String name, Location loc) {
     		super(VARBIND, loc);

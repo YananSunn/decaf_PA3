@@ -131,10 +131,13 @@ public class BuildSym extends Tree.Visitor {
 		}
 		table.open(foreachArray.associatedScope);	
 		Symbol sym = new Variable(foreachArray.varbind.name, foreachArray.varbind.type, foreachArray.varbind.getLocation());
-		foreachArray.associatedScope.declare(sym);
+//		foreachArray.associatedScope.declare(sym);
+		table.declare(sym);
 		foreachArray.varbind.accept(this);
 		foreachArray.expr1.accept(this);
-		foreachArray.expr2.accept(this);
+		if(foreachArray.expr2 != null) {
+			foreachArray.expr2.accept(this);
+		}
 	
 		for (Tree s : ((Block)(foreachArray.stmt)).block) {
 			s.accept(this);

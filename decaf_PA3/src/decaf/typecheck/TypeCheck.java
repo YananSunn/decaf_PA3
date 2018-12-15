@@ -731,7 +731,16 @@ public class TypeCheck extends Tree.Visitor {
 	public void visitForeachArray(ForeachArray foreachArray){
 		foreachArray.varbind.accept(this);
 		foreachArray.expr1.accept(this);
-		foreachArray.expr2.accept(this);	
+		
+		table.open(foreachArray.associatedScope);
+		Symbol sym = new Variable(foreachArray.varbind.name, ((ArrayType)foreachArray.expr1.type).getElementType(), foreachArray.varbind.getLocation());
+		foreachArray.varbind.sym = (Variable) sym;
+//		foreachArray.associatedScope.declare(sym);
+		table.declare(sym);
+		
+		if(foreachArray.expr2 != null) {
+			foreachArray.expr2.accept(this);
+		}
 		if(foreachArray.varbind.type.equal(BaseType.UNKNOWN)) {
 			if(!foreachArray.expr1.type.equal(BaseType.ERROR)) {
 				if(!foreachArray.expr1.type.isArrayType()) {
@@ -739,9 +748,9 @@ public class TypeCheck extends Tree.Visitor {
 					foreachArray.varbind.type = BaseType.ERROR;
 				}
 				else {
-					table.open(foreachArray.associatedScope);
-					Symbol sym = new Variable(foreachArray.varbind.name, ((ArrayType)foreachArray.expr1.type).getElementType(), foreachArray.varbind.getLocation());
-					foreachArray.associatedScope.declare(sym);
+//					table.open(foreachArray.associatedScope);
+//					Symbol sym = new Variable(foreachArray.varbind.name, ((ArrayType)foreachArray.expr1.type).getElementType(), foreachArray.varbind.getLocation());
+//					foreachArray.associatedScope.declare(sym);
 					foreachArray.varbind.type = ((ArrayType)foreachArray.expr1.type).getElementType();
 					for (Tree s : ((Block)(foreachArray.stmt)).block) {
 						breaks.add(s);
@@ -751,8 +760,10 @@ public class TypeCheck extends Tree.Visitor {
 					table.close();
 				}
 			}
-			if(!foreachArray.expr2.type.equal(BaseType.ERROR) && !foreachArray.expr2.type.equal(BaseType.BOOL)) {
-				issueError(new BadTestExpr(foreachArray.expr2.getLocation()));
+			if(foreachArray.expr2 != null) {
+				if(!foreachArray.expr2.type.equal(BaseType.ERROR) && !foreachArray.expr2.type.equal(BaseType.BOOL)) {
+					issueError(new BadTestExpr(foreachArray.expr2.getLocation()));
+				}
 			}
 		}
 		else {
@@ -774,6 +785,7 @@ public class TypeCheck extends Tree.Visitor {
 				issueError(new BadTestExpr(foreachArray.expr2.getLocation()));
 			}
 		}
+
 	}
 	
 	public void visitVarBind(VarBind varBind){
