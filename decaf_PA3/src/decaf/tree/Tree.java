@@ -1523,6 +1523,7 @@ public abstract class Tree {
     public static class Var extends LValue {
     	public String name;
     	public VarDef vardef;
+//    	public Temp val;
     	
         public Var(String name, Location loc) {
             super(VARSTMT, loc);

@@ -464,6 +464,8 @@ public class TypeCheck extends Tree.Visitor {
 				sym.setType(assign.expr.type);
 				sco.declare(sym);
 				assign.left.type = assign.expr.type;
+				
+				assign.left.val = assign.expr.val;
 			}
 			
 		}
@@ -676,6 +678,7 @@ public class TypeCheck extends Tree.Visitor {
 	public void visitVar(Tree.Var var)
     {
 		var.type = BaseType.UNKNOWN;
+		var.lvKind = Tree.LValue.Kind.LOCAL_VAR;
     }
 	
 	public void visitNewSameArray(Tree.NewSameArray newSameArray)

@@ -151,6 +151,30 @@ public class BuildSym extends Tree.Visitor {
 //		table.close();
 //	}
 	
+//	public void visitGuarded(Tree.Guarded guarded)
+//    {
+//		if (guarded.subStmt != null)
+//	    {
+//	        for (Tree branch : guarded.subStmt)
+//	            branch.accept(this);
+//	    }
+//	    if (guarded.last != null)
+//	    {
+//	    	guarded.last.accept(this);
+//	    }
+//    }
+//	
+//	public void visitIfSubStmt(Tree.IfSubStmt ifSubStmt)
+//    {
+//		ifSubStmt.expr.accept(this);
+//
+//        if (ifSubStmt.stmt != null)
+//        {
+//        	ifSubStmt.stmt.accept(this);
+//        }
+//
+//    }
+	
 	
 	@Override
 	public void visitVarDef(Tree.VarDef varDef) {
@@ -272,6 +296,9 @@ public class BuildSym extends Tree.Visitor {
 	public void visitVar(Tree.Var var)
     {
 		var.vardef.accept(this);
+
+		Symbol sym = table.lookup(var.name, true);
+		var.vardef.symbol = (Variable) sym;
     }
 	
 	@Override

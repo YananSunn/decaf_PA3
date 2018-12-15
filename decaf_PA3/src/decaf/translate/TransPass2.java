@@ -3,6 +3,8 @@ package decaf.translate;
 import java.util.Stack;
 
 import decaf.tree.Tree;
+import decaf.tree.Tree.DefaultArray;
+import decaf.tree.Tree.ForeachArray;
 import decaf.Driver;
 import decaf.backend.OffsetCounter;
 import decaf.error.DecafError;
@@ -145,8 +147,14 @@ public class TransPass2 extends Tree.Visitor {
 			break;
 		case PARAM_VAR:
 		case LOCAL_VAR:
-			tr.genAssign(((Tree.Ident) assign.left).symbol.getTemp(),
-					assign.expr.val);
+			if(assign.left instanceof Tree.Ident) {
+				tr.genAssign(((Tree.Ident) assign.left).symbol.getTemp(),
+						assign.expr.val);
+			}
+			else {
+				tr.genAssign(((Tree.Var) assign.left).vardef.symbol.getTemp(),
+						assign.expr.val);
+			}
 			break;
 		}
 	}
@@ -417,24 +425,21 @@ public class TransPass2 extends Tree.Visitor {
         }
         Label last = labels[guarded.subStmt.size()];
         Label end = Label.createLabel();
-         loopExits.push(end);
-         tr.genMark(start);
+        loopExits.push(end);
+        tr.genMark(start);
         int k = 0;
         for (Tree stmt : guarded.subStmt)
         {
-        	
-            tr.genMark(labels[k]);
             ((Tree.IfSubStmt)stmt).expr.accept(this);
-            tr.genBeqz(((Tree.IfSubStmt) stmt).expr.val, labels[k + 1]);
+            tr.genBeqz(((Tree.IfSubStmt) stmt).expr.val, labels[k]);
             stmt.accept(this);
-            tr.genBranch(start);
+            tr.genMark(labels[k]);
             k++;
         }
         tr.genMark(last);
         ((Tree.IfSubStmt)guarded.last).expr.accept(this);
         tr.genBeqz(((Tree.IfSubStmt)guarded.last).expr.val, end);
         guarded.last.accept(this);
-        tr.genBranch(start);
         tr.genMark(end);
 	}
 	
@@ -443,8 +448,53 @@ public class TransPass2 extends Tree.Visitor {
         ifSubStmt.stmt.accept(this);
     }
 	
+	public void visitVar(Tree.Var var)
+    {
+		Temp t = Temp.createTempI4();
+		t.sym = var.vardef.symbol;
+		var.vardef.symbol.setTemp(t);
+    }
 	
-	 private void checkZero(Temp src){
+	public void visitNewSameArray(Tree.NewSameArray newSameArray) {
+		newSameArray.expr.accept(this);
+		newSameArray.newsamearray.accept(this);
+		int n = 0;
+		if(newSameArray.expr.type instanceof ClassType) {
+			n = (((ClassType) newSameArray.expr.type).getSymbol().getSize()) - 4;
+		}
+		else {
+			if((BaseType) newSameArray.expr.type == BaseType.BOOL) {
+				n = 4;
+			}
+			else if((BaseType) newSameArray.expr.type == BaseType.INT) {
+				n = 4;
+			}
+			else if((BaseType) newSameArray.expr.type == BaseType.STRING) {
+				n = 4;
+			}
+		}
+
+		Temp result;
+		if(newSameArray.expr.type instanceof ClassType) {
+			result = tr.genNewSameArray(newSameArray.expr.val, newSameArray.newsamearray.val, n, newSameArray, true);
+		}
+		else {
+			result = tr.genNewSameArray(newSameArray.expr.val, newSameArray.newsamearray.val, n, newSameArray, false);
+		}
+		newSameArray.val = result;
+	}
+	
+	public void visitDefaultArray(DefaultArray defaultArray) {
+		defaultArray.expr2.accept(this);
+		defaultArray.expr1.accept(this);
+		defaultArray.expr3.accept(this);
+		Temp result = tr.genCheckDefaultArrayIndex(defaultArray.expr1.val, defaultArray.expr2.val, defaultArray.expr3.val);
+		defaultArray.val = result;
+	}
+	
+
+	
+	private void checkZero(Temp src){
         Temp msg = tr.genLoadStrConst("Decaf runtime error: Division by zero error.");
         Label goon = Label.createLabel();
         Temp cond = tr.genEqu(src, tr.genLoadImm4(0));

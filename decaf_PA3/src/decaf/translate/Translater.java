@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import decaf.tree.Tree;
+import decaf.tree.Tree.NewSameArray;
 import decaf.backend.OffsetCounter;
 import decaf.error.RuntimeError;
 import decaf.machdesc.Intrinsic;
@@ -20,6 +21,7 @@ import decaf.tac.Tac;
 import decaf.tac.Temp;
 import decaf.tac.VTable;
 import decaf.type.BaseType;
+import decaf.type.ClassType;
 import decaf.type.Type;
 
 public class Translater {
@@ -391,6 +393,86 @@ public class Translater {
 		genMark(exit);
 		return obj;
 	}
+	
+	public void genCheckNewSameArraySize(Temp size) {
+		Label exit = Label.createLabel();
+		Temp cond = genLes(size, genLoadImm4(0));
+		genBeqz(cond, exit);
+		Temp msg = genLoadStrConst(RuntimeError.NEGATIVE_SAME_ARR_SIZE);
+		genParm(msg);
+		genIntrinsicCall(Intrinsic.PRINT_STRING);
+		genIntrinsicCall(Intrinsic.HALT);
+		genMark(exit);
+	}
+	
+	public Temp genNewSameArray(Temp expr, Temp length, int n, NewSameArray newsamearray, boolean isClass) {
+		genCheckNewSameArraySize(length);
+		Temp unit;
+		if(!isClass) {
+			unit = genLoadImm4(OffsetCounter.WORD_SIZE);
+		}
+		else {
+			unit = genLoadImm4(n);
+		}
+		Temp size = genAdd(unit, genMul(unit, length));
+		genParm(size);
+		Temp obj = genIntrinsicCall(Intrinsic.ALLOCATE);
+		genStore(length, obj, 0);
+		Label loop = Label.createLabel();
+		Label exit = Label.createLabel();
+//		Temp zero = genLoadImm4(0);
+		append(Tac.genAdd(obj, obj, size));
+		genMark(loop);
+		append(Tac.genSub(size, size, unit));
+		genBeqz(size, exit);
+		append(Tac.genSub(obj, obj, unit));
+		
+		
+        if(!isClass) {
+        	genStore(expr, obj, 0);
+        }
+        else {
+        	Temp tmpsize = genLoadImm4(n+4);
+            genParm(tmpsize);
+            Temp result = genIntrinsicCall(Intrinsic.ALLOCATE);
+            int time = (n+4) / 4 - 1;
+            for (int i = 0; i < time; i++)
+            {
+                Temp tmp = genLoad(expr, (i + 1) * 4);
+                genStore(tmp, result, (i + 1) * 4);
+            }
+            genStore(genLoadVTable(((ClassType) newsamearray.expr.type).getSymbol().getVtable()), result, 0);
+    		genStore(result, obj, 0);
+        }
+		genBranch(loop);
+		genMark(exit);
+		return obj;
+	}
+	
+	public Temp genCheckDefaultArrayIndex(Temp array, Temp index, Temp defaultexpr) {
+//		Temp length = genLoad(array, -OffsetCounter.WORD_SIZE);
+		Temp length = genLoad(array, 0);
+		Temp cond = genLes(index, length);
+		Temp result = genIntrinsicCall(Intrinsic.ALLOCATE);
+		Label err = Label.createLabel();
+		genBeqz(cond, err);
+		cond = genLes(index, genLoadImm4(0));
+		Label exit = Label.createLabel();
+		Label end = Label.createLabel();
+		genBeqz(cond, exit);
+
+
+		genMark(err);
+		genStore(defaultexpr, result, 0);
+		genBranch(end);
+		
+		genMark(exit);
+		Temp tmp = genLoad(array, (index.value) *4);
+		genStore(tmp, result, 0);
+		genMark(end);
+		return result;
+	}
+	
 
 	public void genNewForClass(Class c) {
 		currentFuncty = new Functy();
