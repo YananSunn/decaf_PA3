@@ -426,7 +426,7 @@ public class TransPass2 extends Tree.Visitor {
         }
         Label last = labels[guarded.subStmt.size()];
         Label end = Label.createLabel();
-        loopExits.push(end);
+
         tr.genMark(start);
         int k = 0;
         for (Tree stmt : guarded.subStmt)
@@ -534,9 +534,7 @@ public class TransPass2 extends Tree.Visitor {
 	public void visitForeachArray(ForeachArray foreachArray) {
 		foreachArray.varbind.accept(this);
 		foreachArray.expr1.accept(this);
-		if(foreachArray.expr2 != null) {
-			foreachArray.expr2.accept(this);
-		}
+		
 		Label cond = Label.createLabel();
 		Label loop = Label.createLabel();
 		Label exit = Label.createLabel();
@@ -558,6 +556,7 @@ public class TransPass2 extends Tree.Visitor {
 		tr.genBeqz(condtion, exit);
 		tr.genAssign(foreachArray.varbind.sym.getTemp(), tr.genLoad(element, 0));
 		if(foreachArray.expr2 != null) {
+			foreachArray.expr2.accept(this);
 			tr.genBeqz(foreachArray.expr2.val, exit);
 		}
 
