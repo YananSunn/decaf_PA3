@@ -140,8 +140,13 @@ public class BuildSym extends Tree.Visitor {
 			foreachArray.expr2.accept(this);
 		}
 	
-		for (Tree s : ((Block)(foreachArray.stmt)).block) {
-			s.accept(this);
+		if(foreachArray.stmt instanceof Block) {
+			for (Tree s : ((Block)(foreachArray.stmt)).block) {
+				s.accept(this);
+			}
+		}
+		else {
+			foreachArray.stmt.accept(this);
 		}
 		
 		table.close();
