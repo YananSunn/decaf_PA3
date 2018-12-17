@@ -732,15 +732,13 @@ public class TypeCheck extends Tree.Visitor {
 		foreachArray.varbind.accept(this);
 		foreachArray.expr1.accept(this);
 		
-		table.open(foreachArray.associatedScope);
-		Symbol sym = new Variable(foreachArray.varbind.name, ((ArrayType)foreachArray.expr1.type).getElementType(), foreachArray.varbind.getLocation());
-		foreachArray.varbind.sym = (Variable) sym;
+//		table.open(foreachArray.associatedScope);
+//		Symbol sym = new Variable(foreachArray.varbind.name, ((ArrayType)foreachArray.expr1.type).getElementType(), foreachArray.varbind.getLocation());
+//		foreachArray.varbind.sym = (Variable) sym;
 //		foreachArray.associatedScope.declare(sym);
-		table.declare(sym);
+//		table.declare(sym);
 		
-		if(foreachArray.expr2 != null) {
-			foreachArray.expr2.accept(this);
-		}
+		
 		if(foreachArray.varbind.type.equal(BaseType.UNKNOWN)) {
 			if(!foreachArray.expr1.type.equal(BaseType.ERROR)) {
 				if(!foreachArray.expr1.type.isArrayType()) {
@@ -748,9 +746,14 @@ public class TypeCheck extends Tree.Visitor {
 					foreachArray.varbind.type = BaseType.ERROR;
 				}
 				else {
-//					table.open(foreachArray.associatedScope);
-//					Symbol sym = new Variable(foreachArray.varbind.name, ((ArrayType)foreachArray.expr1.type).getElementType(), foreachArray.varbind.getLocation());
+					table.open(foreachArray.associatedScope);
+					Symbol sym = new Variable(foreachArray.varbind.name, ((ArrayType)foreachArray.expr1.type).getElementType(), foreachArray.varbind.getLocation());
+					foreachArray.varbind.sym = (Variable) sym;
 //					foreachArray.associatedScope.declare(sym);
+					table.declare(sym);		
+					if(foreachArray.expr2 != null) {
+						foreachArray.expr2.accept(this);
+					}
 					foreachArray.varbind.type = ((ArrayType)foreachArray.expr1.type).getElementType();
 					for (Tree s : ((Block)(foreachArray.stmt)).block) {
 						breaks.add(s);
@@ -761,6 +764,9 @@ public class TypeCheck extends Tree.Visitor {
 				}
 			}
 			if(foreachArray.expr2 != null) {
+				if(foreachArray.expr2.type == null) {
+					foreachArray.expr2.accept(this);
+				}
 				if(!foreachArray.expr2.type.equal(BaseType.ERROR) && !foreachArray.expr2.type.equal(BaseType.BOOL)) {
 					issueError(new BadTestExpr(foreachArray.expr2.getLocation()));
 				}
@@ -773,6 +779,14 @@ public class TypeCheck extends Tree.Visitor {
 					foreachArray.varbind.type = BaseType.ERROR;
 				}
 				else {
+					table.open(foreachArray.associatedScope);
+					Symbol sym = new Variable(foreachArray.varbind.name, ((ArrayType)foreachArray.expr1.type).getElementType(), foreachArray.varbind.getLocation());
+					foreachArray.varbind.sym = (Variable) sym;
+//					foreachArray.associatedScope.declare(sym);
+					table.declare(sym);
+					if(foreachArray.expr2 != null) {
+						foreachArray.expr2.accept(this);
+					}
 					if(((ArrayType)foreachArray.expr1.type).getElementType().compatible(foreachArray.varbind.type)) {
 						for (Tree s : ((Block)(foreachArray.stmt)).block) {
 							breaks.add(s);
@@ -787,8 +801,13 @@ public class TypeCheck extends Tree.Visitor {
 				}	
 			}
 			
-			if(!foreachArray.expr2.type.equal(BaseType.ERROR) && !foreachArray.expr2.type.equal(BaseType.BOOL)) {
-				issueError(new BadTestExpr(foreachArray.expr2.getLocation()));
+			if(foreachArray.expr2 != null) {
+				if(foreachArray.expr2.type == null) {
+					foreachArray.expr2.accept(this);
+				}
+				if(!foreachArray.expr2.type.equal(BaseType.ERROR) && !foreachArray.expr2.type.equal(BaseType.BOOL)) {
+					issueError(new BadTestExpr(foreachArray.expr2.getLocation()));
+				}
 			}
 		}
 
